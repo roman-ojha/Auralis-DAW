@@ -3,3 +3,6 @@
 /artifacts/
 /.vs/
 *.user
+/build-audio/
+
+build-uiqa/
