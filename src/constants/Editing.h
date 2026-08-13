@@ -5,7 +5,11 @@ namespace auralis::editing
 using Tick = std::int64_t;
 inline constexpr Tick ppq = 960, minimumNote = 15, maximumTime = ppq * 4096;
 inline constexpr int historyLimit = 100, maximumNotes = 16384, maximumClips = 2048;
-inline constexpr int keyboardWidth = 64, toolbarHeight = 36, rulerHeight = 26;
+inline constexpr int keyboardWidth = 76, toolbarHeight = 72, rulerHeight = 26;
+inline constexpr int toolButtonWidth = 30, toolButtonGap = 3, keyboardBlackWidth = 47;
+inline constexpr double lineGridPixels = 18.0;
+inline constexpr std::uint32_t whiteKey = 0xffc4cbd1, blackKey = 0xff30353a;
+inline constexpr std::uint32_t lightRow = 0xff242e32, darkRow = 0xff20282c, gridLine = 0xff182124;
 inline constexpr int defaultRowHeight = 18, minRowHeight = 8, maxRowHeight = 32;
 inline constexpr int defaultControlHeight = 116, minControlHeight = 64;
 inline constexpr double pixelsPerBeat = 80, minPixelsPerBeat = 8, maxPixelsPerBeat = 320;
