@@ -21,7 +21,7 @@ int main()
         model.pan(1, -999); model.stereo(1, 999); model.togglePolarity(1);
         require(mixerReference->pan == -100 && mixerReference->stereo == 100 && mixerReference->polarity, "Channel parameter bounds");
         arrangementReference->source = auralis::SourceState{"Test source", "fixture.wav"};
-        arrangementReference->devices.push_back({1, "Future device state"});
+        require(model.addDevice(1, auralis::DeviceKind::synth), "Instrument insertion succeeds");
         require(mixerReference->source->name == "Test source" && mixerReference->devices.size() == 1, "Source/device ownership is shared");
         const auto sendA = model.addSend(), sendB = model.addSend();
         require(model.find(sendA)->kind == auralis::ChannelKind::send, "Sends do not create arrangement tracks");
@@ -50,3 +50,4 @@ int main()
     }
     catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
 }
+
