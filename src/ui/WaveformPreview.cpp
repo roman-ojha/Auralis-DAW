@@ -5,10 +5,8 @@ namespace auralis
 {
 WaveformPreview::WaveformPreview()
 {
-    configureButton(browse, "Choose audio...", "Select a local WAV, AIFF or FLAC file for a read-only waveform. No playback or track import.");
-    browse.onClick = [this] { chooseFile(); };
-    addAndMakeVisible(browse);
-    setHelp(*this, "Audio waveform preview", "Choose a local WAV, AIFF or FLAC file to inspect its waveform. Channels are combined as absolute peaks. Maximum duration: 10 minutes. This does not play or import the file.");
+    setMouseCursor(juce::MouseCursor::PointingHandCursor);
+    setHelp(*this, "Audio waveform preview", "Select an audio file in a library folder to hear it. Click this waveform to replay from the start. Mono/stereo WAV, AIFF and FLAC; up to 10 minutes and 128 MiB decoded. Preview uses reduced gain. Files remain unchanged.");
     clear();
     startTimer(preview::pollMilliseconds);
 }
@@ -20,9 +18,11 @@ WaveformPreview::~WaveformPreview()
 }
 void WaveformPreview::clear()
 {
+    if(onClear)onClear();
     ++exchange->generation;
     { const std::lock_guard lock(exchange->mutex); exchange->ready.reset(); }
     displayed = {};
+    progress=-1;
     displayed.name = "WAVEFORM";
     displayed.message = "No audio selected";
     repaint();
@@ -56,14 +56,19 @@ void WaveformPreview::load(const juce::File& file)
         formats.registerBasicFormats();
         std::unique_ptr<juce::AudioFormatReader> reader(formats.createReaderFor(file));
         if (reader && reader->sampleRate > 0 && reader->sampleRate <= preview::maximumSampleRate
-            && reader->lengthInSamples > 0 && reader->numChannels > 0
-            && reader->numChannels <= preview::maximumChannels)
+            && reader->lengthInSamples/reader->sampleRate >= audio::minimumRegion && reader->numChannels > 0
+            && reader->numChannels <= 2)
         {
             const double seconds = static_cast<double>(reader->lengthInSamples)/reader->sampleRate;
-            if (seconds > preview::maximumSeconds)
-                result->message = "Preview limit: 10 minutes";
+            if (seconds > preview::maximumSeconds || static_cast<double>(reader->lengthInSamples)*2*sizeof(float)>audio::maximumSampleBytes)
+                result->message = "Limit: 10 min / 128 MiB decoded";
             else
             {
+                result->audio=std::make_shared<AudioData>();
+                result->audio->path=file.getFullPathName().toStdString();
+                result->audio->sampleRate=reader->sampleRate;
+                result->audio->left.resize(static_cast<size_t>(reader->lengthInSamples));
+                result->audio->right.resize(static_cast<size_t>(reader->lengthInSamples));
                 juce::AudioBuffer<float> block(static_cast<int>(reader->numChannels), preview::readBlockSamples);
                 bool good = true;
                 for (juce::int64 position = 0; position < reader->lengthInSamples; position += preview::readBlockSamples)
@@ -73,6 +78,9 @@ void WaveformPreview::load(const juce::File& file)
                     if (!reader->read(block.getArrayOfWritePointers(), block.getNumChannels(), position, count)) { good = false; break; }
                     for (int sample = 0; sample < count; ++sample)
                     {
+                        const float left=block.getSample(0,sample),right=block.getSample(block.getNumChannels()>1?1:0,sample);
+                        result->audio->left[static_cast<size_t>(position+sample)]=std::isfinite(left)?left:0;
+                        result->audio->right[static_cast<size_t>(position+sample)]=std::isfinite(right)?right:0;
                         const auto bin = static_cast<size_t>(static_cast<double>(position+sample)*preview::peakBins/static_cast<double>(reader->lengthInSamples));
                         for (int channel = 0; channel < block.getNumChannels(); ++channel)
                         {
@@ -82,6 +90,7 @@ void WaveformPreview::load(const juce::File& file)
                     }
                 }
                 result->valid = good;
+                result->audio->peaks=result->peaks;
                 if (good) result->message = juce::String(seconds, 2)+" s  /  "+juce::String(reader->numChannels)+" ch";
             }
         }
@@ -93,13 +102,13 @@ void WaveformPreview::timerCallback()
 {
     std::unique_ptr<Result> result;
     { const std::lock_guard lock(exchange->mutex); result = std::move(exchange->ready); }
-    if (result) { displayed = std::move(*result); repaint(); }
+    if (result) { displayed = std::move(*result); if(displayed.valid&&onLoaded)onLoaded(displayed.audio); else if(!displayed.valid&&onError)onError(displayed.message); repaint(); }
 }
-void WaveformPreview::resized() { browse.setBounds(0, getHeight()-27, getWidth(), 25); }
+void WaveformPreview::resized() {}
 void WaveformPreview::paint(juce::Graphics& g)
 {
     text(g, displayed.name, {0, 0, getWidth(), 20}, 10, design::colour::mint, true);
-    auto plot = getLocalBounds().withTrimmedTop(25).withTrimmedBottom(50);
+    auto plot = getLocalBounds().withTrimmedTop(25).withTrimmedBottom(24);
     g.setColour(colour(design::colour::background));
     g.fillRoundedRectangle(plot.toFloat(), 4);
     if (displayed.valid && plot.getWidth() > 0)
@@ -115,6 +124,11 @@ void WaveformPreview::paint(juce::Graphics& g)
             g.drawVerticalLine(plot.getX()+x, static_cast<float>(plot.getCentreY())-amplitude, static_cast<float>(plot.getCentreY())+juce::jmax(0.5f, amplitude));
         }
     }
-    text(g, displayed.message, {0, getHeight()-49, getWidth(), 20}, 10, design::colour::muted);
+    if(progress>=0&&progress<=1)
+    {
+        g.setColour(colour(design::colour::amber));
+        g.drawVerticalLine(plot.getX()+juce::roundToInt(progress*plot.getWidth()),static_cast<float>(plot.getY()),static_cast<float>(plot.getBottom()));
+    }
+    text(g, displayed.message, {0, getHeight()-22, getWidth(), 20}, 10, design::colour::muted);
 }
 }
