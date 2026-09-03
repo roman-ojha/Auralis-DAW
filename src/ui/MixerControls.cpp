@@ -20,6 +20,20 @@ void IconButton::paintButton(juce::Graphics& g, bool hover, bool down)
     const float x = box.getX(), y = box.getY();
     switch (icon)
     {
+        case ControlIcon::draw:
+            g.drawLine(x+2,y+14,x+13,y+3,3); g.drawLine(x,y+16,x+4,y+15,2); break;
+        case ControlIcon::paint:
+            g.drawLine(x+8,y,x+8,y+8,3); g.fillRoundedRectangle(x+2,y+7,12,7,2); break;
+        case ControlIcon::select:
+            g.drawRect(box,1); g.drawLine(x+5,y+8,x+11,y+8,1); break;
+        case ControlIcon::erase:
+            g.drawLine(x+3,y+3,x+13,y+13,2);g.drawLine(x+3,y+13,x+13,y+3,2);break;
+        case ControlIcon::slice:
+            g.drawLine(x+3,y,x+13,y+16,2);g.drawLine(x+1,y+8,x+15,y+8,1);break;
+        case ControlIcon::noteMute:
+            g.drawEllipse(box.reduced(2),1.5f);g.drawLine(x,y+16,x+16,y,2);break;
+        case ControlIcon::zoom:
+            g.drawEllipse(x,y,11,11,1.5f);g.drawLine(x+10,y+10,x+16,y+16,2);break;
         case ControlIcon::arrangement:
             for (int i = 0; i < 3; ++i) g.fillRoundedRectangle(x, y+static_cast<float>(i)*6, i == 1 ? 10.0f : 16.0f, 3, 1);
             break;
@@ -50,7 +64,7 @@ void IconButton::paintButton(juce::Graphics& g, bool hover, bool down)
     if (hasKeyboardFocus(true)) { g.setColour(colour(design::colour::mint)); g.drawRoundedRectangle(r, 5, 1); }
 }
 MuteSoloButton::MuteSoloButton(MixerState& model, TrackId track)
-    : IconButton(ControlIcon::power, "Track mute / solo", "Click to mute/unmute. Ctrl + right-click toggles solo independently; S while focused is the keyboard equivalent. Amber ring means solo, slash means muted. UI state only."), state(model), id(track)
+    : IconButton(ControlIcon::power, "Track mute / solo", "Click to mute/unmute. Ctrl + right-click toggles solo independently; S while focused is the keyboard equivalent. Amber ring means solo, slash means muted. Mute and solo apply to audio, instruments and returns; downstream routes of a soloed source remain audible."), state(model), id(track)
 {
     onClick = [this] { state.toggleMute(id); };
     refresh();
@@ -114,5 +128,18 @@ void drawSilentMeter(juce::Graphics& g, juce::Rectangle<int> area, std::uint32_t
         g.fillRect(area.getCentreX()+1, y, juce::jmax(1, area.getWidth()/2-3), 2);
     }
 }
-}
+void drawMeter(juce::Graphics& g,juce::Rectangle<int> area,std::uint32_t tint,double left,double right,bool scale)
+{
+    drawSilentMeter(g,area,tint,scale);if(scale)area.removeFromLeft(28);
+    for(int channel=0;channel<2;++channel)
+    {
+        const double peak=channel==0?left:right;
+        const double proportion=std::clamp((20*std::log10(std::max(1e-6,peak))+60)/66,0.0,1.0);
+        const int height=juce::roundToInt((area.getHeight()-4)*proportion);
+        g.setColour(colour(peak>=1?design::colour::coral:tint));
+        g.fillRect(area.getX()+2+channel*area.getWidth()/2,area.getBottom()-2-height,std::max(1,area.getWidth()/2-3),height);
+    }
+}}
+
+
 

@@ -4,7 +4,7 @@
 
 namespace auralis
 {
-enum class ControlIcon { arrangement, mixer, piano, play, pause, stop, record, power, polarity, route, dock, add };
+enum class ControlIcon { arrangement, mixer, piano, play, pause, stop, record, power, polarity, route, dock, add, draw, paint, select, erase, slice, noteMute, zoom };
 class IconButton : public juce::Button
 {
 public:
@@ -26,11 +26,14 @@ private:
     TrackId id;
     bool soloGesture = false;
 };
-class Knob final : public juce::Slider
+class Knob : public juce::Slider
 {
 public:
     Knob(const juce::String& title, const juce::String& help, double minimum, double maximum, double initial,
          std::uint32_t tint = design::colour::mint);
 };
 void drawSilentMeter(juce::Graphics&, juce::Rectangle<int>, std::uint32_t tint, bool scale = false);
+void drawMeter(juce::Graphics&,juce::Rectangle<int>,std::uint32_t,double left,double right,bool scale=false);
+inline juce::String meterText(double left,double right) {const double peak=std::max(left,right);return peak<1e-5?juce::String("-inf"):juce::String(20*std::log10(peak),1);}
 }
+

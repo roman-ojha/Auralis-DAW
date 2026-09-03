@@ -3,10 +3,11 @@ namespace auralis
 {
 MixerStrip::MixerStrip(MixerState& state, TrackId track)
     : model(state), id(track), mute(state, track),
-      pan("Panning", "Stereo balance: -100 left, 0 center, +100 right. Double-click for center. UI state only.", mixing::panMinimum, mixing::panMaximum, 0),
-      stereo("Stereo separation / merge", "Turn left for separation (-100), center for original stereo (0), right to merge to mono (+100). Double-click for original stereo. UI state only.", mixing::stereoMinimum, mixing::stereoMaximum, 0),
-      amount("Send amount", "Level of the selected source sent to this destination, 0 to 100 percent. Double-click restores unity (100%). This is routing state, not live audio.", 0, 100, 100, design::colour::amber)
+      pan("Panning", "Stereo balance: -100 left, 0 center, +100 right. Double-click for center. Applies to this channel before its outgoing sends.", mixing::panMinimum, mixing::panMaximum, 0),
+      stereo("Stereo separation / merge", "Turn left for separation (-100), center for original stereo (0), right to merge to mono (+100). Double-click for original stereo. Applied to live channel audio.", mixing::stereoMinimum, mixing::stereoMaximum, 0),
+      amount("Send amount", "Level of the selected source sent to this destination, 0 to 100 percent. Double-click restores unity (100%). This controls the live post-fader route.", 0, 100, 100, design::colour::amber)
 {
+    addMouseListener(this,true);
     const auto& c = *model.find(id);
     configureButton(select, juce::String(c.name), "Select " + juce::String(c.name) + " as the routing source and inspect its shared device chain.");
     select.onClick = [this] { model.select(id); };
@@ -27,15 +28,16 @@ MixerStrip::MixerStrip(MixerState& state, TrackId track)
     gain.setDoubleClickReturnValue(true, 0);
     gain.setTextValueSuffix(" dB"); gain.setNumDecimalPlacesToDisplay(1);
     gain.setColour(juce::Slider::thumbColourId, colour(c.tint));
-    setHelp(gain, juce::String(c.name)+" gain", "Shared channel gain, -60 to +6 dB. Drag the fader or type a value; double-click resets 0 dB. Arrangement and mixer use the same value. No audio engine yet.");
+    setHelp(gain, juce::String(c.name)+" gain", "Shared channel gain, -60 to +6 dB. Drag the fader or type a value; double-click resets 0 dB. Arrangement and mixer use the same value. Track, return and Master gains control the live graph.");
     gain.onValueChange = [this] { model.gain(id, gain.getValue()); };
-    setHelp(*this, juce::String(c.name)+" channel", "Select this strip to display its outgoing routing cables. Meters remain at -infinity dBFS until audio exists. Mute, solo, gain, pan, polarity and stereo width are shared UI state.");
+    setHelp(*this, juce::String(c.name)+" channel", "Select this strip to display its outgoing routing cables. Meters show measured post-fader stereo sample peaks in dBFS with a 300 ms decay. Red means 0 dBFS or higher. Mute, solo, gain, pan, polarity and width affect playback.");
     for (juce::Component* control : std::initializer_list<juce::Component*>{&select,&mute,&polarity,&pan,&stereo,&gain,&routeButton,&amount}) addAndMakeVisible(control);
     refresh();
 }
 void MixerStrip::refresh()
 {
     const auto& c = *model.find(id);
+    select.setButtonText(c.name);
     gain.setValue(c.gain, juce::dontSendNotification);
     pan.setValue(c.pan, juce::dontSendNotification);
     stereo.setValue(c.stereo, juce::dontSendNotification);
@@ -70,12 +72,14 @@ void MixerStrip::paint(juce::Graphics& g)
     g.setColour(colour(c.tint)); g.fillRoundedRectangle(5, 3, static_cast<float>(getWidth()-10), 3, 1);
     text(g, "PAN", {0, 69, getWidth(), 16}, 9, design::colour::muted, false, juce::Justification::centred);
     const int bottom = getHeight()-mixing::routingHeight;
-    drawSilentMeter(g, {9, 164, 18, juce::jmax(22, bottom-345)}, c.tint);
-    text(g, "-inf", {4, bottom-177, 28, 16}, 9, design::colour::muted);
+    drawMeter(g, {9, 164, 18, juce::jmax(22, bottom-345)}, c.tint,c.peakLeft,c.peakRight);
+    text(g, meterText(c.peakLeft,c.peakRight), {4, bottom-177, 28, 16}, 9, design::colour::muted);
     text(g, "STEREO", {0, bottom-169, getWidth(), 14}, 9, design::colour::muted, false, juce::Justification::centred);
     if (model.selectedId() == id)
         text(g, "SOURCE", {0, bottom-54, getWidth(), 18}, 9, c.tint, true, juce::Justification::centred);
 }
+void MixerStrip::mouseDoubleClick(const juce::MouseEvent& e)
+{if(e.getEventRelativeTo(this).y<38&&model.onRenameRequested)model.onRenameRequested(id);}
 void MixerStrip::mouseDown(const juce::MouseEvent&) { model.select(id); }
 
 MixerBody::MixerBody(MixerState& state) : model(state), master(state, 0)
@@ -124,13 +128,15 @@ void MixerBody::refresh()
             sends.push_back(std::move(strip));
         }
     }
+    for(const auto& c:model.all())if(c.kind==ChannelKind::arrangement&&std::none_of(tracks.begin(),tracks.end(),[&](const auto& s){return s->trackId()==c.id;}))
+    {auto strip=std::make_unique<MixerStrip>(model,c.id);trackCanvas.addAndMakeVisible(*strip);tracks.push_back(std::move(strip));}
     master.refresh();
     for (auto& s : tracks) s->refresh();
     for (auto& s : sends) s->refresh();
     juce::String help = "Selected source: " + juce::String(model.selectedChannel().name) + ". Outgoing sends: ";
     for (const auto& r : model.sends()) if (r.source == model.selectedId())
         help += juce::String(model.find(r.destination)->name) + " (" + juce::String(r.amount*100, 0) + "%). ";
-    setHelp(*this, "Current meter / routing", help + "Meters are silent dBFS placeholders. Hidden destinations remain connected; show the send dock or scroll channel lanes to inspect them.");
+    setHelp(*this, "Current meter / routing", help + "Meters show measured post-fader sample peaks, not RMS or true peak. Hidden destinations remain connected; show the send dock or scroll channel lanes to inspect them.");
     resized(); repaint();
 }
 void MixerBody::resized()
@@ -158,8 +164,8 @@ void MixerBody::paint(juce::Graphics& g)
     const auto& current = model.selectedChannel();
     text(g, "CURRENT", {0, 9, mixing::currentWidth, 18}, 9, current.tint, true, juce::Justification::centred);
     text(g, juce::String(current.name), {3, 30, mixing::currentWidth-6, 21}, 9, design::colour::muted, false, juce::Justification::centred);
-    drawSilentMeter(g, {3, 65, mixing::currentWidth-9, getHeight()-190}, current.tint, true);
-    text(g, "-inf dBFS", {0, getHeight()-119, mixing::currentWidth, 18}, 9, design::colour::muted, false, juce::Justification::centred);
+    drawMeter(g, {3, 65, mixing::currentWidth-9, getHeight()-190}, current.tint,current.peakLeft,current.peakRight, true);
+    text(g, meterText(current.peakLeft,current.peakRight)+" dBFS", {0, getHeight()-119, mixing::currentWidth, 18}, 9, design::colour::muted, false, juce::Justification::centred);
     if (showSends)
     {
         const int x = sendViewport.getX();
@@ -215,7 +221,7 @@ Mixer::Mixer(MixerState& state) : model(state), body(state)
     addAndMakeVisible(viewport); addAndMakeVisible(dock); addAndMakeVisible(add);
     dock.onClick = [this] { body.showSends = !body.showSends; refresh(); };
     add.onClick = [this] { body.showSends = true; model.addSend(); refresh(); body.revealLastSend(); };
-    setHelp(*this, "Mixer", "Select a source strip, then use destination arrows and amount knobs to build post-fader routes. Send tracks live in the right dock. Meters are silent; no audio engine is connected.");
+    setHelp(*this, "Mixer", "Select a source strip, then use destination arrows and amount knobs to build post-fader routes. Send tracks live in the right dock. Tracks feed their effects, channel controls and post-fader sends, then Master. Master effects process the summed signal, including browser audition.");
     setHelp(viewport.getVerticalScrollBar(), "Mixer vertical scroll", "Scroll down to reach stereo and routing controls when the mixer panel is short.");
     refresh();
 }
@@ -240,7 +246,11 @@ void Mixer::resized()
 void Mixer::paint(juce::Graphics& g)
 {
     panel(g, getLocalBounds());
-    text(g, "FROM  " + juce::String(model.selectedChannel().name) + "   /   ROUTING PREVIEW", {14, 5, getWidth()-98, 25}, 10, model.selectedChannel().tint, true);
+    text(g, "FROM  " + juce::String(model.selectedChannel().name) + "   /   LIVE ROUTING", {14, 5, getWidth()-98, 25}, 10, model.selectedChannel().tint, true);
 }
 }
+
+
+
+
 

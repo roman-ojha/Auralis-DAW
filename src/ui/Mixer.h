@@ -16,13 +16,14 @@ public:
     void resized() override;
     void paint(juce::Graphics&) override;
     void mouseDown(const juce::MouseEvent&) override;
+    void mouseDoubleClick(const juce::MouseEvent&) override;
     TrackId trackId() const { return id; }
 private:
     MixerState& model;
     TrackId id;
     juce::TextButton select;
     MuteSoloButton mute;
-    IconButton polarity{ControlIcon::polarity, "Reverse polarity", "Invert this channel's polarity. Shared channel state; audio processing is not connected yet."};
+    IconButton polarity{ControlIcon::polarity, "Reverse polarity", "Invert this channel's polarity. Applied before the channel output and sends."};
     IconButton routeButton{ControlIcon::route, "Send destination", "Select a source strip, then click a destination arrow to connect or disconnect a post-fader send. The knob above adjusts this route. Self-routing and feedback cycles are blocked."};
     Knob pan, stereo, amount;
     juce::Slider gain;
@@ -34,6 +35,7 @@ public:
     ~MixerBody() override;
     void refresh();
     void revealLastSend();
+    void clearRows(){tracks.clear();sends.clear();}
     void resized() override;
     void paint(juce::Graphics&) override;
     void paintOverChildren(juce::Graphics&) override;
@@ -55,6 +57,7 @@ public:
     ~Mixer() override;
     void refresh();
     void resetLayout();
+    void clearRows(){body.clearRows();}
     void resized() override;
     void paint(juce::Graphics&) override;
 private:
@@ -65,3 +68,4 @@ private:
     IconButton add{ControlIcon::add, "Create send track", "Create a mixer-only send track in the right dock. It has no arrangement lane and initially outputs to Master. Up to 32 send tracks."};
 };
 }
+
