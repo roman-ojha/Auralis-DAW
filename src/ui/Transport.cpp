@@ -16,8 +16,8 @@ Transport::Transport(TransportState& s) : state(s)
 
     for (auto* b : std::initializer_list<juce::Component*>{ &play, &pause, &stop, &record, &metro, &loop }) addAndMakeVisible(b);
     play.onClick = [this] { state.playing = true; refresh(); };
-    pause.onClick = [this] { state.playing = false; refresh(); };
-    stop.onClick = [this] { state.stop(); refresh(); };
+    pause.onClick = [this] { state.playing = false; if(onStopAudition)onStopAudition();refresh(); };
+    stop.onClick = [this] { state.stop(); if(onStopAudition)onStopAudition();refresh(); };
     record.onClick = [this] { state.recordArmed = record.getToggleState(); refresh(); };
     metro.onClick = [this] { state.metronome = metro.getToggleState(); };
     loop.onClick = [this] { state.loop = loop.getToggleState(); };
@@ -25,20 +25,20 @@ Transport::Transport(TransportState& s) : state(s)
     tempo.setSliderStyle(juce::Slider::IncDecButtons);
     tempo.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 56, 28);
     tempo.setRange(design::minTempo, design::maxTempo, 0.1);
-    tempo.setValue(state.tempo); tempo.setNumDecimalPlacesToDisplay(1);
-    tempo.setTitle("Tempo in beats per minute"); tempo.setTooltip("Tempo: 20 to 300 BPM; UI preview only");
+    tempo.setValue(state.tempo,juce::dontSendNotification); tempo.setNumDecimalPlacesToDisplay(1);
+    tempo.setTitle("Tempo in beats per minute"); tempo.setTooltip("Tempo: 20 to 300 BPM. Unwarped samples play at their source speed.");
     tempo.onValueChange = [this] { state.setTempo(tempo.getValue()); };
     addAndMakeVisible(tempo);
     signature.addItemList({"4/4", "3/4", "5/4", "6/8", "7/8", "12/8"}, 1);
-    signature.setSelectedId(1); signature.setTitle("Time signature");
-    signature.setDescription("Choose beats per bar and beat unit for the UI timeline. This affects the bar counter and preview loop duration; there is no audio timing engine yet.");
+    signature.setSelectedId(1,juce::dontSendNotification); signature.setTitle("Time signature");
+    signature.setDescription("Choose beats per bar and beat unit for the arrangement ruler and transport loop. Audio playback uses the output-device clock.");
     signature.onChange = [this]
     {
         const auto parts = juce::StringArray::fromTokens(signature.getText(), "/", "");
         if (parts.size() == 2) { state.numerator = parts[0].getIntValue(); state.denominator = parts[1].getIntValue(); }
     };
     for(int i=0;i<12;++i)quantize.addItem(editing::snapNames[i],i+1);
-    quantize.setSelectedId(8); quantize.setTitle("Quantization preference");
+    quantize.setSelectedId(8,juce::dontSendNotification); quantize.setTitle("Quantization preference");
     quantize.setTooltip("Shared arrangement/piano-roll snap grid. Backspace toggles Line/None. Alt-drag bypasses snap; triplet and step options are available.");
     quantize.onChange=[this]{if(onSnapChanged)onSnapChanged(quantize.getSelectedId()-1);};
     addAndMakeVisible(signature); addAndMakeVisible(quantize);
@@ -46,6 +46,9 @@ Transport::Transport(TransportState& s) : state(s)
 }
 void Transport::refresh()
 {
+    tempo.setValue(state.tempo,juce::dontSendNotification);
+    const auto signatureText=juce::String(state.numerator)+"/"+juce::String(state.denominator);
+    for(int i=0;i<signature.getNumItems();++i)if(signature.getItemText(i)==signatureText)signature.setSelectedItemIndex(i,juce::dontSendNotification);
     play.setToggleState(state.playing, juce::dontSendNotification);
     record.setToggleState(state.recordArmed, juce::dontSendNotification);
     metro.setToggleState(state.metronome, juce::dontSendNotification);
@@ -61,10 +64,10 @@ void Transport::showView(int view)
 }
 HelpContent Transport::helpAt(juce::Point<int> point, bool) const
 {
-    if (spectrumBounds.contains(point)) return {"Audio spectrum", "A logarithmic 20 Hz to 20 kHz frequency display. It shows no signal because no audio engine is connected."};
-    if (timeBounds.contains(point)) return {"Transport position", "Elapsed minutes, seconds and milliseconds, with bar and beat below. This is a message-thread UI preview, not a sample-accurate audio clock."};
+    if (spectrumBounds.contains(point)) return {"Audio spectrum", "A logarithmic 20 Hz to 20 kHz frequency display. Real Master output spectrum, Hann-windowed 2048-sample FFT, stereo maximum, -90 to 0 dBFS. Analysis never blocks the audio thread."};
+    if (timeBounds.contains(point)) return {"Transport position", "Elapsed minutes, seconds and milliseconds, with bar and beat below. Playback position follows the output-device sample clock."};
     if (point.x >= getWidth()-146-mixing::switchWidth) return {"Application resources / views", "CPU is Auralis process usage normalized across logical processors. RAM is resident process memory in MiB. The icons to the right switch between arrangement and mixer."};
-    return {"Transport", "Play, pause and stop the silent timeline preview. Tempo, signature and loop affect the preview. Recording and metronome are UI toggles only."};
+    return {"Transport", "Play, pause and stop arrangement audio. Audio-device samples drive the playback clock. Recording and metronome are UI toggles only."};
 }
 void Transport::resized()
 {
@@ -86,7 +89,7 @@ void Transport::drawSpectrum(juce::Graphics& g)
 {
     auto r = spectrumBounds;
     g.setColour(colour(design::colour::background)); g.fillRoundedRectangle(r.toFloat(), 6);
-    text(g, "SPECTRUM / NO SIGNAL", r.reduced(8).withHeight(12), 9, design::colour::muted, true);
+    text(g, "MASTER / SPECTRUM", r.reduced(8).withHeight(12), 9, design::colour::muted, true);
     const auto plot = r.reduced(9, 0).withTrimmedTop(23).withTrimmedBottom(17);
     for (const float frequency : std::array<float, 4>{20, 200, 2000, 20000})
     {
@@ -95,6 +98,13 @@ void Transport::drawSpectrum(juce::Graphics& g)
         g.setColour(colour(design::colour::line)); g.drawVerticalLine(x, static_cast<float>(plot.getY()), static_cast<float>(plot.getBottom()));
         const auto label = frequency < 1000 ? juce::String(static_cast<int>(frequency)) : juce::String(static_cast<int>(frequency/1000)) + "k";
         text(g, label, {juce::jlimit(r.getX()+2, r.getRight()-28, x-12), r.getBottom()-17, 27, 13}, 9, design::colour::muted);
+    }
+    g.setColour(colour(design::colour::mint).withAlpha(0.7f));
+    for(size_t i=0;i<signal.spectrum.size();++i)
+    {
+        const float width=static_cast<float>(plot.getWidth())/signal.spectrum.size();
+        const float height=signal.spectrum[i]*plot.getHeight();
+        g.fillRect(plot.getX()+i*width,plot.getBottom()-height,std::max(1.0f,width-1),height);
     }
     g.setColour(colour(design::colour::mint).withAlpha(0.5f));
     g.drawHorizontalLine(plot.getBottom()-1, static_cast<float>(plot.getX()), static_cast<float>(plot.getRight()));
@@ -118,5 +128,4 @@ void Transport::paint(juce::Graphics& g)
     text(g, "RAM  " + juce::String(juce::roundToInt(metrics.memoryMiB)) + " MiB", {x, 47, 115, 18}, 11, design::colour::text);
 }
 }
-
 
