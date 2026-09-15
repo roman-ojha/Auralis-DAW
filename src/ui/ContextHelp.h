@@ -27,7 +27,7 @@ inline HelpContent resolveHelp(juce::Component* component, juce::Point<int> scre
             if (tooltip->getTooltip().isNotEmpty())
                 return {current->getTitle().isNotEmpty() ? current->getTitle() : (current->getName().isNotEmpty() ? current->getName() : "Library item"), tooltip->getTooltip()};
     }
-    return {"Auralis workspace", "Hover a control or use Tab to focus it. This workspace is a UI prototype; transport and track controls do not produce audio."};
+    return {"Auralis workspace", "Hover a control or use Tab to focus it. Audio and MIDI sources share channel effects, sends and Master. Drop devices below; F6 enables keyboard audition. Ctrl+S saves a self-contained .aup project; Ctrl+Shift+R exports Master audio. Recording remains unavailable."};
 }
 class InfoView final : public juce::Component
 {
@@ -44,7 +44,7 @@ public:
         body.setFont(juce::Font(juce::FontOptions(design::fontFamily, 13.0f, juce::Font::plain)));
         body.setTitle("Contextual information");
         addAndMakeVisible(body);
-        show({"Welcome to Auralis", "Hover any control or focus it with Tab to learn what it does. Audio processing is not implemented yet."});
+        show({"Welcome to Auralis", "Hover any control or focus it with Tab to learn what it does. Add a library folder to preview samples, then drag audio to an Audio lane or the empty drop zone to edit it."});
     }
     void show(const HelpContent& content)
     {
@@ -67,4 +67,6 @@ private:
     juce::TextEditor body;
 };
 }
+
+
 
