@@ -1,0 +1,14 @@
+[
+  { "name": "Prism", "kind": "Instrument", "description": "Wavetable synthesizer", "section": "Synthesizers" },
+  { "name": "Ember", "kind": "Instrument", "description": "Analog synthesizer", "section": "Synthesizers" },
+  { "name": "Atlas", "kind": "Instrument", "description": "Sample instrument", "section": "Samplers" },
+  { "name": "Pulse", "kind": "Instrument", "description": "Drum instrument", "section": "Drums" },
+  { "name": "Contour", "kind": "Effect", "description": "Parametric equalizer", "section": "EQ & Filters" },
+  { "name": "Gravity", "kind": "Effect", "description": "Dynamics processor", "section": "Dynamics" },
+  { "name": "Bloom", "kind": "Effect", "description": "Spatial reverb", "section": "Reverb" },
+  { "name": "Echo", "kind": "Effect", "description": "Stereo delay", "section": "Delay" },
+  { "name": "Afterglow", "kind": "Sound", "description": "Atmospheric pad", "section": "Textures" },
+  { "name": "Glass", "kind": "Sound", "description": "Melodic one-shot", "section": "One-shots" },
+  { "name": "Dust Kick", "kind": "Sound", "description": "Drum one-shot", "section": "Drum Hits" },
+  { "name": "Night Drive", "kind": "Sound", "description": "Rhythmic loop", "section": "Loops" }
+]
