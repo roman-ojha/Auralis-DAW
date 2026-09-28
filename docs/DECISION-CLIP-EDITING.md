@@ -39,3 +39,22 @@ Sources:
 Limits: session-only document, no project file or recovery yet. No audio engine,
 MIDI scheduling or per-device expression compatibility is implied. Composition
 bounds and history limits are in `constants/Editing.h`.
+
+## 2026-09-27 interaction update
+
+Empty instrument lanes now accept left or right double-click, and explicit clip
+buttons remove the dependency on discovering a mouse gesture. Drawing in the
+empty piano roll creates a document through Workspace. The piano editor uses the
+device area's space while active, restoring it on return to arrangement/mixer.
+
+Shaped piano keys, tool icons, mouse cursors, swept edits, both-edge resizing,
+Shift-drag cloning, note-property dialogs, zoom/fit shortcuts and read-only ghost
+outlines make the common mouse workflows discoverable. Dialog callbacks guard
+component lifetime and resolve stable clip/note IDs before applying changes.
+
+`MidiEditing.h` supplies bounded undoable note presets. These are deliberately
+described by their actual parameters rather than claiming FL generator parity.
+Keyboard event tracing to key-debug.txt has been removed. None/Alt snap now keeps
+tick precision; Line snap adapts to each editor's zoom. The F1 manual and Info View
+remain the user-facing shortcut references. `EditorTests` drives JUCE event handlers
+to complement the model suites and native application inspection.
