@@ -18,6 +18,9 @@ ctest --test-dir build -C Release --output-on-failure
 ```
 
 For assertions/debugging, build and test with `--config Debug` / `-C Debug`.
+`AuralisEditorTests` links JUCE GUI and drives editor handlers without opening a
+window. It checks mouse/keyboard editing against document state; it supplements,
+rather than replaces, native rendering and input verification.
 For the compact-window check, launch the executable with `--compact`.
 Generated IDE solution: `build/Auralis.sln`.
 
@@ -55,7 +58,7 @@ a failure, or weaken a tolerance merely to produce a passing result.
   without actually exercising it.
 - Use available desktop automation with its documented safety rules. If automation
   cannot exercise a behavior, report that limit and give concise manual steps.
-- Keep simulated transport and placeholders distinguishable from working audio.
+- Keep unsupported record/metronome actions distinguishable from working playback.
 
 ## Completion and handoff
 
@@ -79,3 +82,52 @@ Do not commit, publish, distribute, or create a release unless that is part of
 the user's request. A future release requires its own clean-build, packaging,
 dependency/license, recovery, compatibility, and installation checks appropriate
 to the features being shipped; a local UI smoke test is not a release qualification.
+
+Audio callback verification is built into `AuralisAudioOutputTests`; it exercises
+rendering without opening a device, including variable blocks, sample-count clock,
+loop overshoot, pause, output bounds and concurrent immutable plan replacement.
+Its timing printout is an offline workload measurement, not hardware latency or a
+real-time certification. `AuralisAudioTests` covers source-phase/copy/history and
+sample values. Native audio checks must also exercise folder persistence, file
+selection/replay, drag import, lower editor, fades, stop and clean shutdown.
+
+## Project and hosting milestone
+
+`AuralisProjectTests` covers .aup round trips, embedded PCM checksums, failure
+preservation, missing-plugin state, automation curves/ranges and actual FFT input.
+`AuralisHostTests` invokes the scanner helper's verification entry point against
+repository-owned `AuralisHostFixture.vst3`; it verifies scan, stereo processing,
+stable parameters, variable blocks and plugin-state restoration. Build all targets
+before CTest so the fixture exists. It is not installed or added to user favorites.
+Keep `AuralisPluginScanner.exe` beside the normal app when copying a local build.
+Use native QA for editor windows, compact layout and real file-dialog workflows;
+a fixture pass does not establish commercial-plugin compatibility or PDC.
+
+
+## Current regression suite map
+
+| CTest name | Main coverage |
+| --- | --- |
+| AuralisStateTests | Transport and bounded layout state |
+| AuralisMixerTests | Shared channels, route validation and parameter boundaries |
+| AuralisMidiTests | Independent clips, repetition, range edits, snap and history |
+| AuralisEditorTests | Mouse/keyboard gestures, automation curves/history, wheel zoom/height and restored clip hit order |
+| AuralisAudioTests | Sample values, regions/fades, independent copies and history |
+| AuralisAudioOutputTests | Graph routing, synth/effects, automation, source end, sample clock and plan lifetime |
+| AuralisProjectTests | Serialization, embedded-media CRC, malformed input, failure preservation, native metadata and FFT |
+| AuralisHostTests | Owned VST3 fixture scan, processing, parameter IDs, state and teardown |
+
+After persistence/hosting changes, exercise Save/Open with an existing project,
+missing-plugin preservation and actual WAV export when affected. Inspect reopened
+clip visibility/hit order and a clean initial title. Keep native editor lifecycle
+checks separate from host-fixture DSP assertions. Preserve unsaved user changes
+before replacing a running executable; saving is now implemented, so do not use
+old instructions that assume every session must be discarded.
+
+After rack changes, inspect horizontal chain scrolling and internal parameter
+scrolling at both QA sizes. The rack is fixed-height; the audio editor is resizable.
+After automation changes, check lane capture, grouping, bypass and playback while
+hidden, plus save/reopen. Record exact scenarios and unverified limits.
+
+Latest recorded full verification: 2026-09-28; see [VALIDATION](../docs/VALIDATION.md).
+The 2026-09-29 documentation reconciliation does not constitute a new build/test run.

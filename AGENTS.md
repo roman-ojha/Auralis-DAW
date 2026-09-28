@@ -16,14 +16,16 @@ instructions; these files do not grant additional permissions.
    [Instructions/BUILD_AND_VERIFY.md](Instructions/BUILD_AND_VERIFY.md).
 4. Before any audio, MIDI, timing-engine, or plugin work, also read
    [Instructions/AUDIO_AND_PLUGINS.md](Instructions/AUDIO_AND_PLUGINS.md).
-5. Inspect the actual source and applicable nested instructions before editing.
+5. For continuity across chats, read the latest milestone and remaining-work notes
+   in PROJECT_STATE and the linked decision/validation notes; verify them in source.
+6. Inspect the actual source and applicable nested instructions before editing.
    Re-read changed instruction files after a context reset or handoff.
 
 ## Essential boundaries
 
 - Product name: **Auralis**. Native C++20, JUCE, CMake, Windows x64.
-- The current milestone is UI/UX only. Do not implement audio processing,
-  recording, import, plugin hosting, or instruments unless the user requests it.
+- The current milestone includes sample libraries, clips, built-in devices, VST3
+  hosting, automation and .aup persistence. Recording remains unimplemented.
 - Implement the requested scope completely, without unrelated rewrites or features.
 - Preserve user changes and data. Do not bypass tool permissions or silently
   modify machine-wide settings to make a command work.

@@ -105,3 +105,193 @@ project persistence, or production accessibility. Those capabilities are not imp
 - Updated README, PROJECT_STATE, FEATURE_MAP and the shared-mixer decision note.
   Git ownership/trust restrictions remained; no global trust settings or commits
   were changed.
+
+## 2026-09-27 - Interactive piano roll and clip creation
+
+- Windows x64 Release build succeeded. CTest passed 4/4, including the new JUCE
+  editor-handler suite: both-button clip creation, audio-lane rejection, note
+  creation/movement, modifier selection, deletion/undo, cloning, swept erase/mute,
+  slicing, note presets, unique identities and adaptive/tick-precision snap.
+- Inspected native rendering at 1440x900 and 1100x700 content sizes. The shaped
+  keyboard, full-height editor, vector tool strip and control lane fit both sizes.
+  Left double-click created and opened clips on instrument tracks 1 and 2.
+  Drew a note, resized its right edge, switched back to arrangement, and edited
+  its velocity stem. Verified Ctrl+B duplication and Ctrl+Z undo in the app.
+- Native input testing exposed control-character key events without modifiers;
+  EditorKey now normalizes that input path, covered by a raw Ctrl+B regression.
+  Removed temporary key tracing. No input recording remains in application code.
+- Created a loop on the ruler, resized its end and moved its top brace while
+  preserving length. Info View described these actions. F1 opened its separate
+  shortcut window; corrected garbled separators and verified final rendering.
+- The automation API cannot inject a right-button double-click. The handler suite
+  verifies that path; physical-device check remains: double-right-click empty
+  instrument lane space, which should create and open a clip at the grid position.
+  Multi-modifier gestures are primarily handler-tested, not all physically injected.
+  No cross-DPI, exhaustive generator, note-properties-dialog or send-divider
+  interaction test was performed in this update. Existing model suites passed.
+- Updated normal build/Auralis_artefacts/Release/Auralis.exe and launched it.
+  The user authorized discarding the previous unsaved session before replacement.
+- This remains a session-only silent UI prototype. Full FL generator dialogs,
+  arbitrary scale libraries, MIDI I/O, audition, editable ghosts, slide/portamento,
+  audio playback and project save/load are not implemented. Full FL parity is
+  explicitly not claimed. Documented workflows were checked against Image-Line's
+  piano-roll and keyboard-shortcut manuals linked in the clip-editing decision.
+- Source whitespace review found no findings. Git ownership/trust restrictions
+  prevented normal status inspection; compared against a pre-edit local baseline.
+  No global Git settings or commits were changed.
+
+## 2026-09-27 - Sample libraries, audio clips and arrangement feedback
+
+- Release x64 build succeeded with JUCE audio_devices added; no new third-party
+  dependency was introduced. CTest passed 6/6: existing state/MIDI/mixer/editor
+  suites plus new audio model/signal and callback suites.
+- Audio tests verify stereo sample values, native-rate and octave resampling,
+  reverse, source-region loops, fade values, mute/end silence, independent copies,
+  undo/redo, split phase, range deletion and range movement.
+- Callback tests verify sample-count clock, pause silence/position, loop overshoot,
+  zero/variable block lengths, finite bounded output, and 500 concurrent immutable
+  plan swaps. Offline workload: 128 voices, 48 kHz, 512 frames, 100 blocks; measured
+  maximum 0.9452 ms per block versus 10.667 ms audio duration in one Release run.
+  This is not a hardware latency or dropout certification and is not a listening test.
+- Native 1440x900 content inspection: Add Library opened the folder picker and a
+  user-added pack appeared as a sidebar category with nested folders. Clicking
+  WAV and AIFF entries showed their actual decoded waveforms. The obsolete
+  Choose audio button was absent. Dragging a WAV onto track 4 created an audio
+  clip and opened the lower editor. Ctrl+B duplicated it; Reverse affected the
+  copy and clicking the original showed Reverse still off. A dragged fade handle
+  changed fade-in to 0.215 s. A time selection showed amber affected clip portions
+  and a clip count; clip headers showed the hand cursor.
+- The user authorized discarding the test session for executable replacement.
+  The desktop automation tool detected concurrent user input several times;
+  refreshed state before continuing. One drag returned a monitor error, but the
+  subsequent refreshed native screenshot confirmed the import succeeded.
+- No listening claim is made: automated tests checked generated output samples;
+  native inspection checked workflows and rendering. Not yet covered: broad
+  device-loss/sample-rate hot-swap/DPI testing, studio resampling quality, full
+  malformed-file corpus, maximum-size pack stress, or every keyboard gesture.
+- No source samples were changed. Library links persist separately from the
+  session-only composition. Audio editor is intentionally documented as a basic
+  subset: warp markers/algorithms, envelopes, recording, more audio tracks,
+  plugins, real meters, live sends and project save/load remain unimplemented.
+- Updated root AGENTS continuity instructions, PROJECT_STATE, FEATURE_MAP,
+  BUILD_AND_VERIFY, README, F1/Info View and DECISION-AUDIO-CLIPS. No commit or
+  global Git trust change was made. Source whitespace review had no findings.
+- Final native follow-up: restarted the normal build at 1100x700; the user-added
+  pack link persisted. Added a generated 6-second stereo sine WAV test folder,
+  previewed and dragged it onto the scrolled Audio lane, and inspected the lower
+  editor at compact size. Its white audition cursor advanced with device sample
+  time. Removed only the temporary test-folder link through Unlink; the imported
+  test clip remained, proving unlink does not delete imported audio. Kept the
+  user's existing pack link. Corrected stale placeholder help over real files.
+
+## 2026-09-28 shared routing and embedded devices
+
+Windows x64 Release build succeeded with the existing VS2022/JUCE toolchain.
+All six CTest executables passed after graph/device/editor changes. The existing
+MixerState ownership test now inserts a real typed instrument rather than an
+obsolete placeholder initializer. No tests were removed or weakened.
+
+AudioOutputTests additionally verify a dynamic audio track with an interleaved
+return ID, a half-level route through that return to Master, return mute, Master
+mute for browser audition, real MIDI synth energy, stopped-transport keyboard
+playback, complete note release, exact EQ bell centre gain, and finite output
+from all eight effects. Existing variable-block, loop/clock, bounded-output and
+500 concurrent-plan replacement checks still pass. One recorded offline run of
+128 audio clips at 48 kHz / 512 frames had a maximum 1.1731 ms over 100 blocks;
+this measures the sample mixer, not worst-case synth/effects or hardware latency.
+
+Native UI checks used the actual Windows executable at normal 1440x900 and
+compact 1100x700 content sizes. Verified: Prism browser drag creates a new linked
+instrument track and mixer strip; double-click on that new lane creates/opens a
+MIDI clip; notes can be drawn/resized; selecting mixer shows the same Prism;
+Contour drag appends after Prism; EQ band drag changes both frequency and gain;
+ENV 1 drag onto oscillator level creates an assignment visible in its depth menu;
+resizing the lower panel reveals controls; the final compact arrangement keeps a
+fixed visible drop zone even while track lanes scroll. Short keyboard taps
+visibly activated arrangement dBFS and mixer instrument/Master meters. No human
+listening or subjective audio-quality evaluation is claimed.
+
+Corrections found during validation: compact EQ graph could hide controls;
+short injected key taps were missed by timer polling; first-note device startup
+could consume an audition. The graph now leaves scrollable controls visible,
+key-press events latch an 80 ms minimum audition, and instrument/keyboard activation
+warms the output device. Return reverb/delay/modulation effects default fully wet.
+
+Limits: external plugin hosting, session persistence, complete controller-lane
+DSP, general device undo, full Serum parity, exhaustive device-loss/sample-rate
+coverage, worst-case multi-synth deadline profiling and listening remain future
+work. The final source was reviewed directly; this workspace did not expose a
+usable Git worktree to the command-scoped diff invocation. No Git trust settings
+were changed, no commits made, and user library settings were preserved.
+
+Final DSP regression checks also confirm that ENV 2 modulation of ENV 1 attack
+changes rendered attack energy, and ENV modulation of LFO rate changes downstream
+oscillator output. Modulation feedback uses a bounded one-sample delay; parameter
+ranges are clamped. The final Release rebuild and all six suites passed after
+these corrections. No new warnings were reported in changed source.
+
+## 2026-09-28 — projects, device analysis, automation and VST3
+
+Windows x64 / VS2022 Release. Eight suites pass in the normal `build` tree,
+including repository-owned VST3 scan, stable-parameter control, actual stereo
+processing, variable-block state restoration and teardown. ProjectTests verifies
+embedded-media deduplication/CRC, MIDI/device/route/native-state round trips,
+editor view state, corruption/truncation rejection, invalid target ranges and
+byte-for-byte preservation of the destination after a failed save. FFT checks use
+an actual anti-phase stereo 1 kHz input. Editor tests include automation point
+creation, Alt-drag curvature, selection/delete/copy/paste/undo and Ctrl/Alt wheel
+handlers. Existing audio graph, synth, effects, clock and plan-lifetime tests pass.
+
+Native intermediate-build checks verified Prism tabs, larger knobs, LFO assignment
+badge, touch-created grouped automation lanes and point editing. The user's test
+session was saved through File > Save; the unsaved marker cleared before closing.
+User-created plugin favorites and library paths were retained. Subsequent native
+verification and any corrections are recorded below. No human listening,
+exhaustive plugin compatibility or worst-case real-time certification is claimed.
+
+The VST3 fixture test initially failed because its bundle path ended in `../..`
+and it assumed exactly one host-visible parameter. Use the canonical bundle path
+and locate the gain parameter by name (JUCE exposes extra wrapper parameters).
+The corrected test passes without weakening its audio/state assertions.
+
+Native QA also found Ctrl+O swallowed by a focused search TextEditor. Workspace
+now registers a guarded listener on the focused child for project commands only;
+normal text and lane/clip editing shortcuts remain with their owners.
+
+
+Final verification: the normal Release build and all eight CTest suites pass.
+Native QA reproduced restored TrackRow components covering the clip canvas;
+Arrangement now restores clip/automation z-order after rebuilding rows. The
+regression test makes its root component visible before testing hit detection
+(the first test attempt otherwise returned no component). Saved MIDI clips are
+visible again in the running app. Initial native parameter notifications and
+queued piano toolbar initialization no longer dirty the freshly opened test file.
+
+Observed real Master spectrum, device spectra, track dBFS meters and Gravity
+input/output/gain-reduction histories during looped MIDI playback through Prism,
+Contour, Gravity, Echo and the owned VST3 fixture. Used File > Export audio and
+its native file chooser: artifacts/verified-export.wav is stereo 48 kHz 24-bit
+PCM, 192000 frames (four seconds including the two-second tail), measured peak
+0.00171947 at the deliberately quiet test Master setting. The app reported Export
+complete. This verifies actual rendered data, not human listening quality.
+
+Inspected native layouts at 1440x900 and 1100x700 logical sizes, plus maximized.
+The fixed rack uses horizontal scrolling and internal parameter scrolling in the
+compact viewport. Saved test-session edits before replacing its build. Reopened
+the user's Desktop/Untitled.aup in the final executable: the title is clean and
+its Diva/Pro-Q 3 rack and fifth-track MIDI clip are restored. User library links
+and plugin preferences remain intact. Commercial plugin audio/editor compatibility
+is not exhaustively verified; the automated host fixture is the repeatable test.
+
+
+## 2026-09-29 — instruction handbook reconciliation
+
+Documentation-only maintenance: consolidated PROJECT_STATE into a current source
+and ownership map; reconciled existing FEATURE_MAP IDs and removed stale claims
+that routing, instruments, saving, meters and hosting are unavailable. Updated
+all six instruction files for the present engine, persistence, rack layout,
+automation, VST3 boundaries and regression suite responsibilities. Read current
+source/targets and constants; checked relative Markdown links, UTF-8 and feature-ID
+uniqueness. No application code or contextual UI behavior changed, and no build,
+runtime tests or new native verification were performed in this update. Historical
+2026-09-28 results remain dated evidence rather than a claim of new verification.

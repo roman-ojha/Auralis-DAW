@@ -13,7 +13,21 @@ prototype meets every commercial DAW requirement or any formal certification.
 | [PROJECT_STATE.md](PROJECT_STATE.md) | Every new task | Verified baseline, source map, known limits |
 | [FEATURE_MAP.md](FEATURE_MAP.md) | Every implementation task; update before completion | Capability inventory, source owners, behavioral contracts and contextual help requirements |
 | [BUILD_AND_VERIFY.md](BUILD_AND_VERIFY.md) | Implementation or verification | Commands, checks, evidence, completion criteria |
-| [AUDIO_AND_PLUGINS.md](AUDIO_AND_PLUGINS.md) | Audio/MIDI/plugin work | Real-time constraints and future acceptance criteria |
+| [AUDIO_AND_PLUGINS.md](AUDIO_AND_PLUGINS.md) | Audio/MIDI/plugin work | Current engine/host boundaries and real-time acceptance criteria |
+
+## Current baseline and continuity
+
+The current prototype includes MIDI/audio editing, sample libraries, a shared
+channel/send/Master graph, built-in instruments/effects, live analysis, Windows
+x64 VST3 hosting, grouped automation, `.aup` persistence and WAV export.
+[PROJECT_STATE.md](PROJECT_STATE.md) is the consolidated current snapshot;
+[FEATURE_MAP.md](FEATURE_MAP.md) preserves feature IDs and maintenance contracts.
+Read current source alongside them. Neither file grants new implementation scope.
+
+Historical architecture decisions and dated results are in `docs/`; old milestone
+limitations there are not the current capability list. The latest recorded Release
+verification is 2026-09-28 (eight suites). This 2026-09-29 handbook update is
+documentation-only and adds no new runtime verification.
 
 ## Working loop
 

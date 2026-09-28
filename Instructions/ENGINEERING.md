@@ -4,8 +4,8 @@
 
 - Build incrementally toward a professional DAW. A UI milestone is not authority
   to implement an audio engine, plugin scanner, installer, cloud service, or store.
-- Keep presentation (`src/ui/`), state (`src/model/`), platform integration
-  (`src/platform/`), constants (`src/constants/`), and data (`assets/`) distinct.
+- Keep presentation (`src/ui/`), state (`src/model/`), audio processing/hosting
+  (`src/audio/`), platform integration (`src/platform/`), constants (`src/constants/`), and data (`assets/`) distinct.
 - A model must not depend on a window, graphics context, or Windows handle.
   Introduce abstractions at real boundaries, not speculative layers for every class.
 - Give each component one coherent responsibility. Prefer composition and explicit
@@ -13,7 +13,7 @@
 - Keep `main.cpp` concerned with application startup, window lifetime, and shutdown.
 - Add new source files to CMake explicitly. Do not edit generated solution/project
   files, generated assets, or ignored build output as the implementation.
-- For future real features, maintain one authoritative state model. Do not let UI
+- Maintain one authoritative state model for implemented and new features. Do not let UI
   labels become the only source of tempo, routing, gain, or project data.
 - Preserve original Auralis styling. Other DAWs are workflow references, not assets
   or proprietary implementations to copy.
@@ -68,7 +68,8 @@
   scanning, decoding, and expensive work out of paint, resize, and input callbacks.
 - Paint from existing state; do not create business state or rebuild catalogs on
   every frame. Repaint only changing regions at justified refresh rates.
-- Preserve a fixed-height transport header and resizable content panels. Clamp
+- Preserve the fixed-height transport and device rack; browser, track headers,
+  send dock and audio editor retain their intended resize behavior. Clamp
   dividers with valid minimum/maximum bounds and provide recovery/reset behavior.
 - Test the smallest supported window and extreme panel sizes. Prevent negative
   bounds, overlapping controls, unreachable content, and text reduced to illegibility.
@@ -93,10 +94,11 @@
 
 - Bound memory/work for imported metadata, media, and project files. Validate types,
   sizes, counts, paths, sample rates, and non-finite numbers before use.
-- Future saves must preserve originals on failure, use a tested atomic-replace
+- Saves must preserve originals on failure, use a tested atomic-replace
   strategy where supported, and report errors. Version project formats and test
   migrations; never silently discard unknown or missing-plugin state.
-- Future edit operations should be undoable transactions. Distinguish dirty state,
+- New edit operations should be undoable transactions; existing MIDI/audio and
+  per-lane automation histories are not project-wide undo. Distinguish dirty state,
   saved state, autosave/recovery, and transient UI preferences.
 - Log actionable failures without secrets or private audio content. Do not add
   telemetry, networking, or uploads unless explicitly part of the requested scope.

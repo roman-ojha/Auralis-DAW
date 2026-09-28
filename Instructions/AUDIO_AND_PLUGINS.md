@@ -1,8 +1,9 @@
 # Audio, MIDI, and plugin engineering
 
-These rules apply when the user authorizes real audio/MIDI/plugin work. They are
-future acceptance requirements, not a claim these subsystems exist now. Read
-ENGINEERING.md first. Do not implement this document as an unsolicited backlog.
+These rules govern the implemented audio graph, MIDI playback, built-in devices
+and VST3 host, and any authorized extensions. They are engineering requirements,
+not proof of complete compliance. Read ENGINEERING.md and PROJECT_STATE.md first.
+Do not implement the remaining-work list as an unsolicited backlog.
 
 ## Real-time boundary
 
@@ -71,3 +72,41 @@ ENGINEERING.md first. Do not implement this document as an unsolicited backlog.
 - Use safe monitoring levels for listening tests. Automated signal checks and
   human listening complement each other; never claim listening was performed
   merely because a waveform or meter was visible.
+
+The first sample-playback implementation is documented in
+[DECISION-AUDIO-CLIPS](../docs/DECISION-AUDIO-CLIPS.md). Its validation is limited
+to the recorded tests, not blanket compliance with every future requirement here.
+
+
+## Current implementation boundaries
+
+- AudioOutput renders a stereo DAG in chunks of at most 64 samples. Sources,
+  devices, post-fader sends/returns and Master share the graph. Browser preview
+  enters Master; clip audition enters the clip channel. Output is bounded to
+  [-1, 1]. MIDI scheduling uses sample offsets; UI timers only poll audio time.
+- Published plans retain immutable base values and private render state. Hazard
+  protection and off-callback collection preserve plan/processor lifetime.
+  Audit ownership changes carefully; native plugin internals are not guaranteed
+  allocation-free or safe merely because the host callback is bounded.
+- Built-in automation is evaluated per sample; native parameter automation is
+  applied per chunk. Preserve stable IDs/ranges, bypass-to-manual behavior and
+  orphaned target data. Piano controller lanes are distinct from grouped lanes.
+- SignalAnalysis passes samples through a bounded SPSC queue; full queues drop
+  analysis frames. UI code computes the FFT. Stereo magnitude uses independent
+  channels, preventing cancellation of anti-phase material. Track meters are
+  post-fader sample peaks; Gravity histories measure input/output/reduction.
+- Project state capture briefly suspends rendering, asynchronously waits for an
+  idle callback, then captures native state on the message thread. Export uses
+  independent plugin instances and keeps final native ownership on the UI thread.
+- Only Windows x64 VST3 stereo hosting is enabled. Explicit scanning runs in a
+  helper with timeout/cancel/quarantine; runtime processing remains in-process.
+  PDC, sidechains, multichannel buses, other formats and complete playhead metadata
+  are unsupported. Preserve unavailable plugin blobs and stable parameter IDs.
+- Audio pitch controls perform resampling (speed changes with pitch), not quality
+  time warping. WAV export stops sources at the range end and allows an effect
+  tail; loop exports have no pre-roll. Record/metronome controls remain UI only.
+
+Read [the graph decision](../docs/DECISION-AUDIO-GRAPH.md) and
+[the project/hosting decision](../docs/DECISION-PROJECTS-HOSTING-AUTOMATION.md).
+Use the latest [validation record](../docs/VALIDATION.md) to distinguish verified
+cases from untested compatibility, listening quality and deadline behavior.
