@@ -47,7 +47,7 @@ part of the renamed project. The workspace folder is intentionally unchanged.
 - Horizontal and vertical timeline scrolling. The arrangement title/count/zoom
   toolbar remains removed; Ctrl+wheel / Page Up/Down zoom both editors.
 - Piano-roll/arrangement/mixer icon switches sit after App Resources (also in View menu).
-  Both views reference the same channel state, source slot and device-chain owner.
+  Arrangement and mixer reference the same channel state and device-chain owner.
 - Mixer with pinned master/current meters, channel faders, pan and stereo knobs,
   and polarity icons. Left-click the power icon to mute; Ctrl+right-click toggles
   solo (S while focused is the keyboard alternative). Audio track/Master gain, mute, solo, pan and polarity affect playback; stereo width and post-fader sends are processed in the audio graph.
@@ -70,8 +70,8 @@ Drag the browser divider, its internal category/results divider, track-header di
 one to reset it, or use View > Reset Layout. The menu and transport stay at fixed heights.
 The window supports resizing from 1100 x 700 logical pixels, native maximize,
 DPI scaling, and scrolling where the viewport cannot show all content.
-Space toggles preview playback when the workspace handles keyboard focus; Escape
-stops. Text fields and standard controls retain their own keyboard behavior.
+Space starts/stops arrangement playback when the workspace handles keyboard focus;
+Ctrl+Space pauses/resumes, and Escape stops playback and audition. Text fields and standard controls retain their own keyboard behavior.
 
 ## MIDI editing
 
@@ -119,15 +119,23 @@ slide/portamento processing are not implemented. Notes play loaded instruments a
 - `src/constants/Editing.h` and `Shortcuts.h`: editing limits and shortcut reference.
 - `src/model/MixerState.h`: shared channel ownership, parameters and acyclic sends.
 - `src/ui/`: separate browser, transport, arrangement, theme and workspace components.
-- `src/platform/`: Windows process resource sampling.
-- `assets/`: dummy catalog data, embedded at build time.
+- `src/audio/`: routed audio rendering, built-in DSP, VST3 hosting and signal analysis.
+- `src/model/ProjectFile.*`, `Automation.h`, `SessionView.h`: project format, automation
+  curves and saved editor positions.
+- `src/ui/ProjectActions.cpp`, `PluginActions.cpp`, `PluginSettings.*`: save/open/export,
+  external device insertion and persistent scanning preferences.
+- `src/platform/`: Windows process resource sampling and the isolated plugin scanner.
+- `assets/`: built-in device catalogue and original application icon.
 - `Instructions/FEATURE_MAP.md`: maintained feature inventory, source ownership,
   behavioral contracts and required updates for every implementation task.
-- `tests/`: timing, loop, invalid-input and extreme-size layout regression checks.
+- `tests/`: eight suites covering state, mixer, MIDI, editors, sample audio, graph
+  processing, projects/FFT and an owned VST3 fixture. See
+  [build and verification guidance](Instructions/BUILD_AND_VERIFY.md).
 
 The UI model is intentionally separate from real-time audio processing.
 JUCE owns GUI resources through RAII; timer work runs on the message thread.
-The audio callback reads immutable render plans; no microphone input or network service is started. External plugins load only by explicit insertion or project restore.
+The audio callback reads immutable render plans; no microphone input or network service is started. Runtime plugins load by explicit insertion or project restore; explicit scanning
+loads candidates in the separate scanner helper.
 The waveform inspector adds JUCE audio_formats/audio_basics for file decoding only;
 sample playback opens the default stereo output with no input channels. Recreate the original icon using
 `assets/Generate-Icon.ps1`, then reconfigure and rebuild to refresh Windows resources.
@@ -142,7 +150,7 @@ No proprietary redistribution licence for Auralis is asserted by this prototype.
 
 
 
-### Built-in instruments and live routing
+## Built-in instruments and live routing
 
 Drag **Prism** from Instruments onto a MIDI lane or **Drag clip/instrument here**
 to create a new linked track. Drop effects into the lower device chain; they run

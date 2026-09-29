@@ -25,12 +25,13 @@ instructions; these files do not grant additional permissions.
 
 - Product name: **Auralis**. Native C++20, JUCE, CMake, Windows x64.
 - The current milestone includes sample libraries, clips, built-in devices, VST3
-  hosting, automation and .aup persistence. Recording remains unimplemented.
+  hosting, automation, .aup persistence and stereo WAV export. Recording remains
+  unimplemented. PROJECT_STATE.md is the consolidated current capability snapshot.
 - Implement the requested scope completely, without unrelated rewrites or features.
 - Preserve user changes and data. Do not bypass tool permissions or silently
   modify machine-wide settings to make a command work.
 - Use named constants in `src/constants/`, explicit ownership, and small,
-  cohesive components. Keep future real-time processing independent of the UI.
+  cohesive components. Keep real-time processing independent of the UI.
 - Build and verify changes proportionately. Never claim a test, screenshot,
   performance result, or feature is real unless it was actually verified.
 - Keep these guides accurate when architecture, commands, or capabilities change.
